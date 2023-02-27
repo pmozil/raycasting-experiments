@@ -154,26 +154,27 @@ impl<'a> Player<'a> {
                 && y < self.map.height as f32
                 && self.map[y as usize][x as usize] != '#'
             {
-                x += coeff_x * self.movt_step / 8.0;
-                y += coeff_y * self.movt_step / 8.0;
+                x += coeff_x * self.movt_step / 6.0;
+                y += coeff_y * self.movt_step / 6.0;
                 steps += 1;
             }
             let dist = steps / 15;
             let tiles_for_ceiling = std::cmp::min(
-                (
-                    if i < self.screen.width / 2 {i}
-                    else {self.screen.width - i}
-                ) / 2,
-                self.screen.width / 3
-            );
+                if i < self.screen.width / 2 {i}
+                else {self.screen.width - i},
+                self.screen.width / 4
+            ) / 2;
+            // let tiles_for_ceiling = ((tiles_scale as f32 / self.screen.width as f32) * self.screen.height as f32) as usize;
             let wall_reached: bool = self.map[y as usize][x as usize] == '#';
             for j in 0..self.screen.height {
                 if j < tiles_for_ceiling {
                     self.screen[j][i] = ' ';
-                } else if wall_reached {
+                } else if wall_reached && j < (self.screen.width - tiles_for_ceiling) {
                     self.screen[j][i] = PIXEL_MAP[0][std::cmp::min(dist as usize, 4)];
+                } else if !wall_reached  && j < (self.screen.height){
+                    self.screen[j][i] = PIXEL_MAP[1][std::cmp::min(dist as usize, 4)];
                 } else {
-                    self.screen[j][i] = PIXEL_MAP[2][std::cmp::min(dist as usize, 4)];
+
                 }
             }
         }
