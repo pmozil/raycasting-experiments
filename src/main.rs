@@ -5,9 +5,9 @@ use std::io::{stdout, Stdout, Write};
 use std::vec::Vec;
 
 const PIXEL_MAP: [[char; 5]; 3] = [
-    [' ', ' ', '.', '▌', '█'],
-    [' ', ' ', '.', '.', '•'],
-    [' ', ' ', ' ', '.', '•'],
+    ['█', '█', '▒', '░', '░'],
+    ['░', '░', '░', ' ', ' '],
+    ['•', '.', ' ', ' ', ' '],
 ];
 
 struct Term<'a> {
@@ -143,33 +143,37 @@ impl<'a> Player<'a> {
 
     fn render(&mut self) {
         let drot = self._fov / (self.screen.width as f32);
-        let mut pos = self.rot - self._fov;
+        let mut pos = self.rot + self._fov;
         for i in 0..self.screen.width {
-            pos = pos + drot * (i as f32);
+            pos += drot;
             let (coeff_x, coeff_y) = (pos.sin(), pos.cos());
-            let (mut x, mut y) = (self.x, self.y);
+            let (mut x, mut y, mut steps) = (self.x, self.y, 0);
             while 0.0 <= x
                 && x < self.map.width as f32
                 && 0.0 <= y
                 && y < self.map.height as f32
                 && self.map[y as usize][x as usize] != '#'
             {
-                x += coeff_x * self.movt_step;
-                y += coeff_y * self.movt_step;
+                x += coeff_x * self.movt_step / 8.0;
+                y += coeff_y * self.movt_step / 8.0;
+                steps += 1;
             }
-            let (dx, dy) = (self.x - x, self.y - y);
-            let dist = ((dx.powi(2) + dy.powi(2)).sqrt().ceil() / 2.25).ceil();
-            let tiles_for_ceiling = (dist * 2.0) as i8;
-            let wall_reached: bool = self.map[y as usize][x as usize] == '#' || dist >= 4.0;
+            let dist = steps / 15;
+            let tiles_for_ceiling = std::cmp::min(
+                (
+                    if i < self.screen.width / 2 {i}
+                    else {self.screen.width - i}
+                ) / 2,
+                self.screen.width / 3
+            );
+            let wall_reached: bool = self.map[y as usize][x as usize] == '#';
             for j in 0..self.screen.height {
-                if (self.screen.height as i8 - j as i8) < tiles_for_ceiling
-                    || (j as i8) < tiles_for_ceiling
-                {
-                    self.screen[j][i] = PIXEL_MAP[1][4 - std::cmp::min(dist as usize, 4)];
+                if j < tiles_for_ceiling {
+                    self.screen[j][i] = ' ';
                 } else if wall_reached {
-                    self.screen[j][i] = PIXEL_MAP[0][4 - std::cmp::min(dist as usize, 4)];
+                    self.screen[j][i] = PIXEL_MAP[0][std::cmp::min(dist as usize, 4)];
                 } else {
-                    self.screen[j][i] = PIXEL_MAP[2][4 - std::cmp::min(dist as usize, 4)];
+                    self.screen[j][i] = PIXEL_MAP[2][std::cmp::min(dist as usize, 4)];
                 }
             }
         }
@@ -280,7 +284,7 @@ fn main() -> crossterm::Result<()> {
         ],
     ];
     let pi: f32 = std::f32::consts::PI;
-    let mut player: Player = Player::new(3.0, 5.0, 0.0, pi / 2.0, 0.5, &mut map, &mut screen);
+    let mut player: Player = Player::new(3.0, 5.0, 0.0, pi / 1.5, 0.5, &mut map, &mut screen);
 
     term.execute(cursor::Hide).unwrap();
     term.queue(cursor::SavePosition).unwrap();
