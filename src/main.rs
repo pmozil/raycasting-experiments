@@ -4,10 +4,9 @@ use std::fmt;
 use std::io::{stdout, Stdout, Write};
 use std::vec::Vec;
 
-const PIXEL_MAP: [[char; 5]; 3] = [
-    ['█', '█', '▒', '░', '░'],
-    ['░', '░', '░', ' ', ' '],
-    ['•', '.', ' ', ' ', ' '],
+const PIXEL_MAP: [[char; 5]; 2] = [
+    ['█', '█', '▒', '░', '•'],
+    ['•', '.', '.', '_', '_'],
 ];
 
 struct Term<'a> {
@@ -139,6 +138,8 @@ impl<'a> Player<'a> {
 
     fn rotate(&mut self, rotation: f32) {
         self.rot = (self.rot + rotation) % (2.0 * std::f32::consts::PI);
+        self.x = self.x.floor();
+        self.y = self.y.floor();
     }
 
     fn render(&mut self) {
@@ -159,22 +160,14 @@ impl<'a> Player<'a> {
                 steps += 1;
             }
             let dist = steps / 15;
-            let tiles_for_ceiling = std::cmp::min(
-                if i < self.screen.width / 2 {i}
-                else {self.screen.width - i},
-                self.screen.width / 4
-            ) / 2;
-            // let tiles_for_ceiling = ((tiles_scale as f32 / self.screen.width as f32) * self.screen.height as f32) as usize;
-            let wall_reached: bool = self.map[y as usize][x as usize] == '#';
+            let tiles_for_ceiling = std::cmp::min(dist * 10, self.screen.width / 5) / 4;
             for j in 0..self.screen.height {
-                if j < tiles_for_ceiling {
+                if j <= tiles_for_ceiling {
                     self.screen[j][i] = ' ';
-                } else if wall_reached && j < (self.screen.width - tiles_for_ceiling) {
+                } else if j <= (self.screen.height - tiles_for_ceiling) {
                     self.screen[j][i] = PIXEL_MAP[0][std::cmp::min(dist as usize, 4)];
-                } else if !wall_reached  && j < (self.screen.height){
-                    self.screen[j][i] = PIXEL_MAP[1][std::cmp::min(dist as usize, 4)];
                 } else {
-
+                    self.screen[j][i] = PIXEL_MAP[1][std::cmp::min(dist as usize, 4)];
                 }
             }
         }
@@ -301,8 +294,8 @@ fn main() -> crossterm::Result<()> {
                 KeyCode::Char(chr) => match chr {
                     'w' => player.mv(1),
                     's' => player.mv(-1),
-                    'a' => player.rotate(pi / 16.0),
-                    'd' => player.rotate(-pi / 16.0),
+                    'a' => player.rotate(pi / 32.0),
+                    'd' => player.rotate(-pi / 32.0),
                     _ => (),
                 },
                 KeyCode::Esc => break,
